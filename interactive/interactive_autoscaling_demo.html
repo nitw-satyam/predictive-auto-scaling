@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +14,7 @@ header p{margin:0;color:#dbeafe}
 .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 button,select{padding:10px 13px;border:1px solid #cbd5e1;border-radius:7px;background:white;cursor:pointer}
 button:hover{background:#eaf1ff}
+button:disabled,input:disabled,select:disabled{opacity:.55;cursor:wait}
 input[type=range]{flex:1;min-width:140px}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:13px}
 .card{margin-bottom:0}
@@ -30,229 +30,384 @@ canvas{width:100%;height:220px;display:block}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0f172a;color:#d1fae5;padding:14px;border-radius:8px;max-height:260px;overflow:auto}
 .note{color:#64748b;font-size:13px;line-height:1.5}
 .status{font-weight:bold;color:#047857}
+.status.error{color:#b91c1c}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;text-align:left;min-width:650px}
+th,td{padding:10px;border-bottom:1px solid #e2e8f0}
+th{background:#eff6ff}
 @media(max-width:500px){body{padding:10px}header h1{font-size:21px}}
 </style>
 </head>
 <body>
 <header>
-<h1>Predictive Auto Scaling Dashboard</h1>
-<p>Interactive simulation of predictive and reactive cloud resource scaling</p>
+  <h1>Predictive Auto Scaling Dashboard</h1>
+  <p>Explore predictive and reactive autoscaling results from the saved experiment CSV files</p>
 </header>
 
 <section class="controls">
-<label for="mode"><b>Controller:</b></label>
-<select id="mode">
-<option value="predictive">Predictive Auto Scaling</option>
-<option value="reactive">Reactive Auto Scaling</option>
-</select>
-<button id="prev">◀ Previous</button>
-<button id="play">▶ Play</button>
-<button id="next">Next ▶</button>
-<input id="slider" type="range" min="0" max="359" value="0">
-<span id="position">Minute 0 / 359</span>
+  <label for="scenario"><b>Experiment scenario:</b></label>
+  <select id="scenario">
+    <option value="stable">Stable workload</option>
+    <option value="gradual_ramp">Gradual ramp</option>
+    <option value="noisy_fluctuation">Noisy fluctuation</option>
+    <option value="repeated_bursts">Repeated bursts</option>
+    <option value="spike_and_recovery">Spike and recovery</option>
+    <option value="sudden_spikes">Sudden spikes</option>
+  </select>
+  <label for="mode"><b>Controller:</b></label>
+  <select id="mode">
+    <option value="predictive">Predictive Auto Scaling</option>
+    <option value="reactive">Reactive Auto Scaling</option>
+  </select>
+  <button id="prev" disabled>◀ Previous</button>
+  <button id="play" disabled>▶ Play</button>
+  <button id="next" disabled>Next ▶</button>
+  <input id="slider" type="range" min="0" max="0" value="0" disabled>
+  <span id="position">Loading experiment data…</span>
 </section>
 
 <section class="metrics">
-<div class="card"><small>Simulation minute</small><div class="value" id="minute">0</div></div>
-<div class="card"><small>Request rate</small><div class="value" id="requests">—</div></div>
-<div class="card"><small>Active instances</small><div class="value" id="instances">—</div></div>
-<div class="card"><small>CPU utilization</small><div class="value" id="cpu">—</div></div>
-<div class="card"><small>Response time</small><div class="value" id="latency">—</div></div>
+  <div class="card"><small>Simulation minute</small><div class="value" id="minute">—</div></div>
+  <div class="card"><small>Request rate (requests/min)</small><div class="value" id="requests">—</div></div>
+  <div class="card"><small>Active instances</small><div class="value" id="instances">—</div></div>
+  <div class="card"><small>CPU utilization</small><div class="value" id="cpu">—</div></div>
+  <div class="card"><small>Response time</small><div class="value" id="latency">—</div></div>
 </section>
 
 <section class="charts">
-<div class="chart"><h3>Workload: requests per minute</h3><canvas id="requestChart"></canvas></div>
-<div class="chart"><h3>Active instances: controller comparison</h3><canvas id="instanceChart"></canvas></div>
-<div class="chart"><h3>CPU utilization: controller comparison</h3><canvas id="cpuChart"></canvas></div>
-<div class="chart"><h3>Response time: controller comparison</h3><canvas id="latencyChart"></canvas></div>
+  <div class="chart"><h3>Workload: requests per minute</h3><canvas id="requestChart"></canvas></div>
+  <div class="chart"><h3>Active instances: controller comparison</h3><canvas id="instanceChart"></canvas></div>
+  <div class="chart"><h3>CPU utilization: controller comparison</h3><canvas id="cpuChart"></canvas></div>
+  <div class="chart"><h3>Response time: controller comparison</h3><canvas id="latencyChart"></canvas></div>
 </section>
 
 <section class="flow">
   <h2>Overall Performance Comparison</h2>
-  <p class="note">Results from the saved experiment summary. Cost is measured in estimated instance-minutes.</p>
-  <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;text-align:left">
-      <thead>
-        <tr style="background:#eff6ff">
-          <th style="padding:12px;border-bottom:1px solid #cbd5e1">Metric</th>
-          <th style="padding:12px;border-bottom:1px solid #cbd5e1">Reactive</th>
-          <th style="padding:12px;border-bottom:1px solid #cbd5e1">Predictive</th>
-          <th style="padding:12px;border-bottom:1px solid #cbd5e1">Comparison</th>
-        </tr>
-      </thead>
+  <p class="note">Saved aggregate experiment summary. Cost is measured in estimated instance-minutes; these figures are a static summary and do not change with the selected scenario.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Reactive</th><th>Predictive</th><th>Comparison</th></tr></thead>
       <tbody>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">Average active instances</td><td style="padding:10px">2.631</td><td style="padding:10px">2.148</td><td style="padding:10px;color:#15803d">18.4% lower</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">Average provisioned instances</td><td style="padding:10px">2.670</td><td style="padding:10px">2.193</td><td style="padding:10px;color:#15803d">17.9% lower</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">Scaling actions</td><td style="padding:10px">165</td><td style="padding:10px">147</td><td style="padding:10px;color:#15803d">10.9% fewer</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">Average response time</td><td style="padding:10px">56.09 ms</td><td style="padding:10px">59.42 ms</td><td style="padding:10px;color:#b45309">5.9% higher</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">P95 response time</td><td style="padding:10px">60.18 ms</td><td style="padding:10px">60.99 ms</td><td style="padding:10px;color:#b45309">1.3% higher</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">P99 response time</td><td style="padding:10px">66.91 ms</td><td style="padding:10px">191.38 ms</td><td style="padding:10px;color:#b91c1c">186.0% higher</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">SLA violations</td><td style="padding:10px">15 (0.347%)</td><td style="padding:10px">41 (0.949%)</td><td style="padding:10px;color:#b91c1c">2.73× as many</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">Estimated instance-minute cost</td><td style="padding:10px">11,534</td><td style="padding:10px">9,474</td><td style="padding:10px;color:#15803d">17.9% lower</td></tr>
-        <tr><td style="padding:10px;border-bottom:1px solid #e2e8f0">Peak instances</td><td style="padding:10px">8</td><td style="padding:10px">8</td><td style="padding:10px">Equal</td></tr>
+        <tr><td>Average active instances</td><td>2.631</td><td>2.148</td><td style="color:#15803d">18.4% lower</td></tr>
+        <tr><td>Average provisioned instances</td><td>2.670</td><td>2.193</td><td style="color:#15803d">17.9% lower</td></tr>
+        <tr><td>Scaling actions</td><td>165</td><td>147</td><td style="color:#15803d">10.9% fewer</td></tr>
+        <tr><td>Average response time</td><td>56.09 ms</td><td>59.42 ms</td><td style="color:#b45309">5.9% higher</td></tr>
+        <tr><td>P95 response time</td><td>60.18 ms</td><td>60.99 ms</td><td style="color:#b45309">1.3% higher</td></tr>
+        <tr><td>P99 response time</td><td>66.91 ms</td><td>191.38 ms</td><td style="color:#b91c1c">186.0% higher</td></tr>
+        <tr><td>SLA violations</td><td>15 (0.347%)</td><td>41 (0.949%)</td><td style="color:#b91c1c">2.73× as many</td></tr>
+        <tr><td>Estimated instance-minute cost</td><td>11,534</td><td>9,474</td><td style="color:#15803d">17.9% lower</td></tr>
+        <tr><td>Peak instances</td><td>8</td><td>8</td><td>Equal</td></tr>
       </tbody>
     </table>
   </div>
-  <p class="note">Interpretation: Predictive scaling reduced estimated resource cost and scaling actions in this experiment, but response-time tail latency and SLA violations were worse. These are saved experiment results, not live cloud measurements.</p>
+  <p class="note">Interpretation: In the saved aggregate experiment, predictive scaling reduced estimated resource cost and scaling actions, but response-time tail latency and SLA violations were worse. These are saved experiment results, not live cloud measurements.</p>
 </section>
 
 <section class="flow">
-<h3>Auto-scaling workflow</h3>
-<div class="flowline">
-<div class="step">Workload monitoring</div><span class="arrow">→</span>
-<div class="step">Load prediction</div><span class="arrow">→</span>
-<div class="step">Scaling decision</div><span class="arrow">→</span>
-<div class="step">Instance adjustment</div><span class="arrow">→</span>
-<div class="step">Performance monitoring</div>
-</div>
-<p class="note">Predictive scaling anticipates demand; reactive scaling responds after demand changes. This dashboard is an educational simulation, not a connection to live cloud infrastructure.</p>
+  <h3>Auto-scaling workflow</h3>
+  <div class="flowline">
+    <div class="step">Workload monitoring</div><span class="arrow">→</span>
+    <div class="step">Load prediction</div><span class="arrow">→</span>
+    <div class="step">Scaling decision</div><span class="arrow">→</span>
+    <div class="step">Instance adjustment</div><span class="arrow">→</span>
+    <div class="step">Performance monitoring</div>
+  </div>
+  <p class="note">The dashboard reads saved CSV experiment output. It does not connect to live cloud infrastructure.</p>
 </section>
 
 <section class="data">
-<h3>Current time-point data</h3>
-<div id="status" class="status">Simulation ready</div>
-<pre id="json">{}</pre>
+  <h3>Current time-point data</h3>
+  <div id="status" class="status">Loading CSV experiment data…</div>
+  <pre id="json">{}</pre>
 </section>
 
 <script>
-(function(){
-"use strict";
-const N=360;
-const data={predictive:[],reactive:[]};
-let idx=0,timer=null;
+(function () {
+  "use strict";
 
-function workload(t){
-  const daily=110+32*Math.sin(t/22)+19*Math.sin(t/8);
-  const morning=t>55&&t<115?70:0;
-  const evening=t>210&&t<285?105:0;
-  const burst=(t>145&&t<165)?115:0;
-  return Math.max(35,daily+morning+evening+burst);
-}
-let previousPredictive=2,previousReactive=2;
-for(let t=0;t<N;t++){
-  const req=workload(t);
-  const predicted=workload(Math.min(N-1,t+12));
-  const predInstances=Math.max(1,Math.min(12,Math.ceil(predicted/85)));
-  const reactiveTarget=Math.max(1,Math.min(12,Math.ceil(req/85)));
-  if(t%3===0) previousReactive=reactiveTarget;
-  previousPredictive=predInstances;
-  const predictiveCpu=Math.min(1,req/(predInstances*65));
-  const reactiveCpu=Math.min(1,req/(previousReactive*65));
-  data.predictive.push({
-    minute:t,request_rate:+req.toFixed(2),
-    instances:predInstances,cpu_util:+predictiveCpu.toFixed(4),
-    latency_ms:+(38+Math.max(0,predictiveCpu-.65)*105+req*.025).toFixed(2)
-  });
-  data.reactive.push({
-    minute:t,request_rate:+req.toFixed(2),
-    instances:previousReactive,cpu_util:+reactiveCpu.toFixed(4),
-    latency_ms:+(40+Math.max(0,reactiveCpu-.65)*145+req*.03).toFixed(2)
-  });
-}
+  let N = 0;
+  let idx = 0;
+  let timer = null;
+  let loaded = false;
 
-const $=id=>document.getElementById(id);
-const mode=$("mode"),slider=$("slider");
-function series(which){return data[which]}
-function current(){return series(mode.value)[idx]}
-function fmt(v){return Number(v).toFixed(1)}
-function resizeCanvas(canvas){
-  const rect=canvas.getBoundingClientRect();
-  const ratio=window.devicePixelRatio||1;
-  canvas.width=Math.max(1,Math.round(rect.width*ratio));
-  canvas.height=Math.max(1,Math.round(rect.height*ratio));
-  const ctx=canvas.getContext("2d");
-  ctx.setTransform(ratio,0,0,ratio,0,0);
-  return {ctx,w:rect.width,h:rect.height};
-}
-function drawChart(id,lines,maximum,suffix){
-  const canvas=$(id),{ctx,w,h}=resizeCanvas(canvas);
-  const left=43,right=10,top=14,bottom=28;
-  const pw=w-left-right,ph=h-top-bottom;
-  ctx.clearRect(0,0,w,h);
-  ctx.font="11px Arial";
-  ctx.fillStyle="#64748b";ctx.strokeStyle="#e2e8f0";ctx.lineWidth=1;
-  for(let k=0;k<=4;k++){
-    const y=top+ph*k/4;
-    ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();
-    ctx.fillText(fmt(maximum*(1-k/4))+suffix,2,y+4);
+  const data = { predictive: [], reactive: [] };
+  const $ = id => document.getElementById(id);
+  const mode = $("mode");
+  const scenario = $("scenario");
+  const slider = $("slider");
+  const controls = [$("prev"), $("play"), $("next"), slider, mode];
+
+  function setStatus(message, isError = false) {
+    $("status").textContent = message;
+    $("status").classList.toggle("error", isError);
   }
-  [0,90,180,270,359].forEach(t=>{
-    const x=left+pw*t/(N-1);
-    ctx.fillText(String(t),x-8,h-8);
-  });
-  lines.forEach(line=>{
-    ctx.beginPath();ctx.strokeStyle=line.color;ctx.lineWidth=2;
-    line.values.forEach((v,i)=>{
-      const x=left+pw*i/(N-1);
-      const y=top+ph*(1-Math.min(maximum,Math.max(0,v))/maximum);
-      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+
+  function setControlsEnabled(enabled) {
+    controls.forEach(control => control.disabled = !enabled);
+    scenario.disabled = false;
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) throw new Error("CSV file has no data rows.");
+
+    const headers = lines[0].split(",").map(header => header.trim());
+
+    return lines.slice(1).filter(line => line.trim()).map(line => {
+      const values = line.split(",");
+      return Object.fromEntries(
+        headers.map((header, i) => [header, values[i] === undefined ? "" : values[i].trim()])
+      );
     });
+  }
+
+  async function loadExperimentData() {
+    stop();
+    loaded = false;
+    setControlsEnabled(false);
+    setStatus(`Loading ${scenario.value} scenario CSV files…`);
+
+    const selectedScenario = scenario.value;
+    const nextData = { predictive: [], reactive: [] };
+
+    for (const controller of ["predictive", "reactive"]) {
+      const url = `../results/${selectedScenario}_${controller}.csv`;
+      const response = await fetch(url, { cache: "no-store" });
+
+      if (!response.ok) {
+        throw new Error(`Could not load ${url} (HTTP ${response.status}). Check that the CSV exists in the repository's results folder.`);
+      }
+
+      const rows = parseCSV(await response.text());
+      nextData[controller] = rows.map(row => ({
+        minute: Number(row.time_min),
+        request_rate: Number(row.request_rate),
+        instances: Number(row.active_instances || row.total_instances),
+        total_instances: Number(row.total_instances),
+        pending_instances: Number(row.pending_instances),
+        cpu_util: Number(row.utilization),
+        latency_ms: Number(row.response_ms),
+        sla_violation: Number(row.sla_violation),
+        action: row.action || "",
+        predicted_request_rate: row.predicted_request_rate === "" ? null : Number(row.predicted_request_rate),
+        capacity_requests_per_min: Number(row.capacity_requests_per_min)
+      }));
+    }
+
+    const rowCount = Math.min(nextData.predictive.length, nextData.reactive.length);
+    if (!rowCount) throw new Error("The CSV files loaded, but contain no usable data rows.");
+
+    data.predictive = nextData.predictive.slice(0, rowCount);
+    data.reactive = nextData.reactive.slice(0, rowCount);
+    N = rowCount;
+    idx = 0;
+    slider.min = 0;
+    slider.max = N - 1;
+    slider.value = 0;
+    loaded = true;
+    setControlsEnabled(true);
+    render();
+    setStatus(`Loaded ${N} rows for the ${selectedScenario.replaceAll("_", " ")} scenario.`);
+  }
+
+  function series(which) {
+    return data[which];
+  }
+
+  function current() {
+    return series(mode.value)[idx];
+  }
+
+  function fmt(value) {
+    return Number.isFinite(Number(value)) ? Number(value).toFixed(1) : "—";
+  }
+
+  function resizeCanvas(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.round(rect.width * ratio));
+    canvas.height = Math.max(1, Math.round(rect.height * ratio));
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    return { ctx, w: rect.width, h: rect.height };
+  }
+
+  function drawChart(id, lines, maximum, suffix) {
+    const { ctx, w, h } = resizeCanvas($(id));
+    const left = 46, right = 10, top = 18, bottom = 28;
+    const pw = Math.max(1, w - left - right);
+    const ph = Math.max(1, h - top - bottom);
+    maximum = Math.max(1, maximum);
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = "11px Arial";
+    ctx.fillStyle = "#64748b";
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+
+    for (let k = 0; k <= 4; k++) {
+      const y = top + ph * k / 4;
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(w - right, y);
+      ctx.stroke();
+      ctx.fillText(fmt(maximum * (1 - k / 4)) + suffix, 2, y + 4);
+    }
+
+    const marks = [...new Set([
+      0, Math.floor((N - 1) / 4), Math.floor((N - 1) / 2),
+      Math.floor(3 * (N - 1) / 4), N - 1
+    ])];
+
+    marks.forEach(i => {
+      const x = left + pw * i / Math.max(1, N - 1);
+      ctx.fillText(String(series("predictive")[i]?.minute ?? i), x - 8, h - 8);
+    });
+
+    lines.forEach(line => {
+      ctx.beginPath();
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 2;
+
+      line.values.forEach((value, i) => {
+        const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+        const x = left + pw * i / Math.max(1, N - 1);
+        const y = top + ph * (1 - Math.min(maximum, Math.max(0, safeValue)) / maximum);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    });
+
+    let legendX = left;
+    lines.forEach(line => {
+      ctx.fillStyle = line.color;
+      ctx.fillRect(legendX, 7, 10, 3);
+      ctx.fillStyle = "#334155";
+      ctx.fillText(line.label, legendX + 14, 14);
+      legendX += ctx.measureText(line.label).width + 38;
+    });
+
+    const x = left + pw * idx / Math.max(1, N - 1);
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = "#64748b";
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, top + ph);
     ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function render() {
+    if (!loaded || N === 0) return;
+
+    const d = current();
+    const p = series("predictive");
+    const r = series("reactive");
+
+    $("minute").textContent = d.minute;
+    $("requests").textContent = fmt(d.request_rate);
+    $("instances").textContent = fmt(d.instances);
+    $("cpu").textContent = fmt(d.cpu_util * 100) + "%";
+    $("latency").textContent = fmt(d.latency_ms) + " ms";
+    $("position").textContent = `Minute ${idx + 1} / ${N}`;
+    slider.value = idx;
+
+    $("json").textContent = JSON.stringify({
+      scenario: scenario.value,
+      controller: mode.value,
+      ...d,
+      cpu_util_percent: Number.isFinite(d.cpu_util) ? +(d.cpu_util * 100).toFixed(2) : null
+    }, null, 2);
+
+    drawChart("requestChart", [
+      { label: "Requests/min", color: "#2563eb", values: p.map(row => row.request_rate) }
+    ], Math.max(350, ...p.map(row => row.request_rate)), "");
+
+    drawChart("instanceChart", [
+      { label: "Predictive", color: "#059669", values: p.map(row => row.instances) },
+      { label: "Reactive", color: "#ea580c", values: r.map(row => row.instances) }
+    ], Math.max(12, ...p.map(row => row.instances), ...r.map(row => row.instances)), "");
+
+    drawChart("cpuChart", [
+      { label: "Predictive", color: "#059669", values: p.map(row => row.cpu_util * 100) },
+      { label: "Reactive", color: "#ea580c", values: r.map(row => row.cpu_util * 100) }
+    ], 100, "%");
+
+    drawChart("latencyChart", [
+      { label: "Predictive", color: "#059669", values: p.map(row => row.latency_ms) },
+      { label: "Reactive", color: "#ea580c", values: r.map(row => row.latency_ms) }
+    ], Math.max(250, ...p.map(row => row.latency_ms), ...r.map(row => row.latency_ms)), "ms");
+  }
+
+  function stop() {
+    if (timer !== null) {
+      clearInterval(timer);
+      timer = null;
+    }
+    $("play").textContent = "▶ Play";
+  }
+
+  $("prev").addEventListener("click", () => {
+    if (!loaded) return;
+    stop();
+    idx = Math.max(0, idx - 1);
+    render();
   });
-  const legendY=12;
-  let legendX=left;
-  lines.forEach(line=>{
-    ctx.fillStyle=line.color;ctx.fillRect(legendX,legendY-7,10,3);
-    ctx.fillStyle="#334155";ctx.fillText(line.label,legendX+14,legendY);
-    legendX+=ctx.measureText(line.label).width+35;
+
+  $("next").addEventListener("click", () => {
+    if (!loaded) return;
+    stop();
+    idx = Math.min(N - 1, idx + 1);
+    render();
   });
-  const x=left+pw*idx/(N-1);
-  ctx.setLineDash([4,4]);ctx.strokeStyle="#64748b";
-  ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+ph);ctx.stroke();
-  ctx.setLineDash([]);
-}
-function render(){
-  const d=current(),p=series("predictive"),r=series("reactive");
-  $("minute").textContent=d.minute;
-  $("requests").textContent=fmt(d.request_rate);
-  $("instances").textContent=d.instances;
-  $("cpu").textContent=fmt(d.cpu_util*100)+"%";
-  $("latency").textContent=fmt(d.latency_ms)+" ms";
-  $("position").textContent="Minute "+idx+" / "+(N-1);
-  slider.value=idx;
-  $("json").textContent=JSON.stringify({
-    controller:mode.value,
-    ...d,
-    cpu_util_percent:+(d.cpu_util*100).toFixed(2)
-  },null,2);
-  $("status").textContent="Showing "+(mode.value==="predictive"?"predictive":"reactive")+" controller at minute "+idx;
-  drawChart("requestChart",[
-    {label:"Requests/min",color:"#2563eb",values:p.map(x=>x.request_rate)}
-  ],350,"");
-  drawChart("instanceChart",[
-    {label:"Predictive",color:"#059669",values:p.map(x=>x.instances)},
-    {label:"Reactive",color:"#ea580c",values:r.map(x=>x.instances)}
-  ],12,"");
-  drawChart("cpuChart",[
-    {label:"Predictive",color:"#059669",values:p.map(x=>x.cpu_util*100)},
-    {label:"Reactive",color:"#ea580c",values:r.map(x=>x.cpu_util*100)}
-  ],100,"%");
-  drawChart("latencyChart",[
-    {label:"Predictive",color:"#059669",values:p.map(x=>x.latency_ms)},
-    {label:"Reactive",color:"#ea580c",values:r.map(x=>x.latency_ms)}
-  ],250,"ms");
-}
-function stop(){
-  if(timer!==null){clearInterval(timer);timer=null;}
-  $("play").textContent="▶ Play";
-}
-function advance(){
-  idx=(idx+1)%N;render();
-}
-$("prev").addEventListener("click",()=>{stop();idx=Math.max(0,idx-1);render()});
-$("next").addEventListener("click",()=>{stop();idx=Math.min(N-1,idx+1);render()});
-$("play").addEventListener("click",()=>{
-  if(timer!==null){stop();return;}
-  $("play").textContent="Ⅱ Pause";
-  timer=setInterval(()=>{
-    if(idx>=N-1){stop();return;}
-    idx++;render();
-  },500);
-});
-slider.addEventListener("input",()=>{stop();idx=Number(slider.value);render()});
-mode.addEventListener("change",render);
-window.addEventListener("resize",render);
-render();
+
+  $("play").addEventListener("click", () => {
+    if (!loaded) return;
+    if (timer !== null) {
+      stop();
+      return;
+    }
+    if (idx >= N - 1) idx = 0;
+    $("play").textContent = "Ⅱ Pause";
+    timer = setInterval(() => {
+      if (idx >= N - 1) {
+        stop();
+        return;
+      }
+      idx++;
+      render();
+    }, 500);
+  });
+
+  slider.addEventListener("input", () => {
+    if (!loaded) return;
+    stop();
+    idx = Number(slider.value);
+    render();
+  });
+
+  mode.addEventListener("change", render);
+
+  scenario.addEventListener("change", () => {
+    loadExperimentData().catch(error => {
+      loaded = false;
+      setControlsEnabled(false);
+      setStatus("CSV loading failed: " + error.message, true);
+      $("json").textContent = error.stack || error.message;
+      console.error(error);
+    });
+  });
+
+  window.addEventListener("resize", render);
+
+  loadExperimentData().catch(error => {
+    loaded = false;
+    setControlsEnabled(false);
+    setStatus("CSV loading failed: " + error.message, true);
+    $("json").textContent = error.stack || error.message;
+    console.error(error);
+  });
 })();
 </script>
 </body>
