@@ -1,0 +1,9 @@
+numpy
+pandas
+matplotlib
+scikit-learn
+flask
+locust
+python-docx
+python-pptx
+pytest

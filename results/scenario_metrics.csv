@@ -1,0 +1,13 @@
+scenario,controller,avg_active_instances,avg_provisioned_instances,peak_instances,scale_actions,scale_out_actions,scale_in_actions,avg_response_ms,p95_response_ms,p99_response_ms,sla_violations,sla_violation_pct,estimated_instance_minute_cost,mean_absolute_forecast_error
+stable,reactive,2.0,2.0,2,0,0,0,54.87,59.83,61.88,0,0.0,1440.0,
+stable,predictive,2.0,2.0,2,0,0,0,54.87,59.83,61.88,0,0.0,1440.0,9.38
+gradual_ramp,reactive,3.458,3.475,6,8,6,2,54.87,59.83,61.88,0,0.0,2502.0,
+gradual_ramp,predictive,2.739,2.75,5,5,4,1,54.89,59.83,62.12,0,0.0,1980.0,20.56
+sudden_spikes,reactive,2.521,2.549,8,20,10,10,58.05,60.51,134.79,7,0.972,1835.0,
+sudden_spikes,predictive,1.967,2.031,8,32,17,15,63.83,60.31,274.66,12,1.667,1462.0,26.37
+repeated_bursts,reactive,2.581,2.671,6,66,33,33,58.32,61.46,193.71,6,0.833,1923.0,
+repeated_bursts,predictive,2.082,2.204,5,65,40,25,67.43,113.67,515.2,19,2.639,1587.0,66.86
+noisy_fluctuation,reactive,3.222,3.297,4,54,27,27,54.9,59.85,62.24,0,0.0,2374.0,
+noisy_fluctuation,predictive,2.426,2.485,3,38,21,17,57.38,62.56,134.21,4,0.556,1789.0,77.39
+spike_and_recovery,reactive,2.006,2.028,6,17,8,9,55.54,59.96,62.77,2,0.278,1460.0,
+spike_and_recovery,predictive,1.675,1.689,5,7,4,3,58.11,60.16,64.14,6,0.833,1216.0,18.82

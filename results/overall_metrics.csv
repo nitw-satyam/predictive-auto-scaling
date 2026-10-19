@@ -1,0 +1,3 @@
+controller,avg_active_instances,avg_provisioned_instances,peak_instances,scale_actions,scale_out_actions,scale_in_actions,avg_response_ms,p95_response_ms,p99_response_ms,sla_violations,sla_violation_pct,estimated_instance_minute_cost,mean_absolute_forecast_error
+reactive,2.631,2.67,8,165,84,81,56.09,60.18,66.91,15,0.347,11534.0,
+predictive,2.148,2.193,8,147,86,61,59.42,60.99,191.38,41,0.949,9474.0,36.56

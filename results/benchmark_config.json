@@ -1,0 +1,24 @@
+{
+  "seed": 42,
+  "minutes_per_scenario": 720,
+  "scenarios": [
+    "stable",
+    "gradual_ramp",
+    "sudden_spikes",
+    "repeated_bursts",
+    "noisy_fluctuation",
+    "spike_and_recovery"
+  ],
+  "controllers": [
+    "reactive",
+    "predictive"
+  ],
+  "capacity_per_instance_req_per_min": 220,
+  "min_instances": 1,
+  "max_instances": 12,
+  "warmup_minutes": 2,
+  "cooldown_minutes": 3,
+  "predictive_safety_margin": 0.15,
+  "sla_threshold_ms": 200,
+  "note": "Synthetic simulation; not live cloud measurements."
+}

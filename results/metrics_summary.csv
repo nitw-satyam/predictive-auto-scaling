@@ -1,0 +1,3 @@
+,average_instances,peak_instances,scale_actions,sla_violations,sla_rate_pct,estimated_compute_cost_units
+Baseline,1.9333333333333333,4,21,0,0.0,6.96
+Proposed,1.7944444444444445,4,17,0,0.0,6.460000000000001
